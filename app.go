@@ -2,17 +2,38 @@ package main
 
 import (
 	"flag"
-	"github.com/google/gops/agent"
+	"fmt"
 	"log"
-	"net/http"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/julienschmidt/httprouter"
 
-	"github.com/tokopedia/gosample/hello"
+	"github.com/tokopedia/sqlt"
+
+	"github.com/antony/polling/config"
+	"github.com/google/gops/agent"
+
 	"github.com/tokopedia/logging/tracer"
 	"gopkg.in/tokopedia/grace.v1"
 	"gopkg.in/tokopedia/logging.v1"
+
+	_pdaRepository "github.com/antony/polling/polling_defined_answer/repository"
+
+	pollingDelivery "github.com/antony/polling/polling/delivery/http"
+	pollingRepository "github.com/antony/polling/polling/repository"
+	pollingUsecase "github.com/antony/polling/polling/usecase"
+
+	_ "github.com/lib/pq"
 )
+
+var cfg *config.Config
+
+func init() {
+	var ok bool
+	cfg, ok = config.NewConfig([]string{"./files/etc/polling"}...)
+	if !ok {
+		fmt.Println("Error opening config files")
+	}
+}
 
 func main() {
 
@@ -27,14 +48,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	hwm := hello.NewHelloWorldModule()
+	//Open connection to db
+	db, err := sqlt.Open("postgres", cfg.Polling.DB)
+	if err != nil {
+		log.Println("Error opening db")
+		return
+	}
 
-	http.Handle("/metrics", promhttp.Handler())
+	router := httprouter.New()
 
-	http.HandleFunc("/hello", hwm.SayHelloWorld)
+	//init polling handler
+	pdap := _pdaRepository.NewPostgresPollingDefinedAnswerRepository(db)
+	pp := pollingRepository.NewPostgresPollingRepository(db)
+	pu := pollingUsecase.NewPollingUsecase(pp, pdap)
+	pollingDelivery.NewPollingHttpHandler(router, pu)
+
 	go logging.StatsLog()
 
 	tracer.Init(&tracer.Config{Port: 8700, Enabled: true})
 
-	log.Fatal(grace.Serve(":9000", nil))
+	log.Fatal(grace.Serve(":9000", router))
 }

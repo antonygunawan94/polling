@@ -141,6 +141,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/tokopedia/gosample"
+  packages = ["hello","nsq"]
+  revision = "1e9d6550c7469960c5a091c2151a6c36280e5500"
+
+[[projects]]
+  branch = "master"
   name = "github.com/tokopedia/logging"
   packages = ["tracer"]
   revision = "28e2f74413285e0dd0ec8aec292aa40530bfa10a"
@@ -214,6 +220,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7f0faf10af08c962a2bea6c204cfe1d4882fbbd168a564bd4b729b34060be925"
+  inputs-digest = "b6dfe283991982a62ad6cb0cb53772a53a1e4297a7cf2758ee3982c080293a0a"
   solver-name = "gps-cdcl"
   solver-version = 1
