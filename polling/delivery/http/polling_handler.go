@@ -6,27 +6,27 @@ import (
 	"net/http"
 	"strconv"
 
-	model "github.com/antony/polling/polling"
-	pollingUsecase "github.com/antony/polling/polling/usecase"
+	"github.com/antony/polling/polling/model"
+	"github.com/antony/polling/polling/usecase"
 	"github.com/antony/polling/util"
 	"github.com/julienschmidt/httprouter"
 )
 
 type httpPollingHandler struct {
-	PUsecase pollingUsecase.PollingUsecase
+	PUsecase usecase.PollingUsecase
 }
 
 func (hph *httpPollingHandler) GetAll(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	util.SetWriterJSON(w)
 
 	pollings, err := hph.PUsecase.GetAll()
-	if err != nil{
+	if err != nil {
 		log.Println(err)
 		w.Write([]byte("Internal server error"))
 	}
 
 	res, err := json.Marshal(pollings)
-	if err != nil{
+	if err != nil {
 		log.Println(err)
 		w.Write([]byte("Internal server error"))
 	}
@@ -69,7 +69,7 @@ func (hph *httpPollingHandler) Insert(w http.ResponseWriter, r *http.Request, p 
 	decoder.Decode(&polling)
 }
 
-func NewPollingHttpHandler(router *httprouter.Router, pu pollingUsecase.PollingUsecase) {
+func NewPollingHttpHandler(router *httprouter.Router, pu usecase.PollingUsecase) {
 	handler := httpPollingHandler{
 		pu,
 	}

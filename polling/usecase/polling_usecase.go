@@ -1,13 +1,14 @@
 package usecase
 
 import (
-	"fmt"
 	"log"
 
-	model "github.com/antony/polling/polling"
+	"github.com/antony/polling/polling/model"
 	"github.com/antony/polling/polling/repository"
 	_pdaRepository "github.com/antony/polling/polling_defined_answer/repository"
 )
+
+//
 
 type PollingUsecase interface {
 	GetAll() ([]model.Polling, error)
@@ -20,15 +21,17 @@ type pollingUsecase struct {
 	pollingDefinedAnswerRepo _pdaRepository.PollingDefinedAnswerRepository
 }
 
-func (pu *pollingUsecase) GetAll() ([]model.Polling, error){
+func (pu *pollingUsecase) GetAll() ([]model.Polling, error) {
 	pollings := make([]model.Polling, 0)
 
 	pollings, err := pu.pollingRepo.GetAll()
-	if err != nil{
+	if err != nil {
 		log.Println(err)
 		return pollings, err
 	}
 
+	//Create slice references to mutate pollings slice
+	pollingsRef := pollings[:0]
 	for _, polling := range pollings {
 		pdas, err := pu.pollingDefinedAnswerRepo.GetByPollingID(polling.ID)
 		if err != nil {
@@ -36,8 +39,8 @@ func (pu *pollingUsecase) GetAll() ([]model.Polling, error){
 			return pollings, err
 		}
 
-		polling.PollingDefinedAnswers = *pdas
-		fmt.Println(polling.PollingDefinedAnswers)
+		polling.PollingDefinedAnswers = pdas
+		pollingsRef = append(pollingsRef, polling)
 	}
 
 	return pollings, nil
@@ -58,7 +61,7 @@ func (pu *pollingUsecase) GetByRoomID(id int64) (*model.Polling, error) {
 		return polling, err
 	}
 
-	polling.PollingDefinedAnswers = *pdas
+	polling.PollingDefinedAnswers = pdas
 
 	return polling, nil
 }
