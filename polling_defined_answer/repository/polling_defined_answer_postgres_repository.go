@@ -16,7 +16,8 @@ func NewPostgresPollingDefinedAnswerRepository(conn *sqlt.DB) PollingDefinedAnsw
 }
 
 func (ppdar *postgresPollingDefinedAnswerRepository) GetByPollingID(id int64) ([]model.PollingDefinedAnswer, error) {
-	query := `SELECT 
+	query := `
+			SELECT 
 				id,
 				polling_id,
 				answer,
@@ -40,4 +41,85 @@ func (ppdar *postgresPollingDefinedAnswerRepository) GetByPollingID(id int64) ([
 		pdas = append(pdas, pda)
 	}
 	return pdas, nil
+}
+
+func (ppdar *postgresPollingDefinedAnswerRepository) Insert(pda *model.PollingDefinedAnswer) (int64, error) {
+	query := `
+			INSERT INTO
+				polling_defined_answers
+				(
+					polling_id,
+					answer,
+					created_at,
+					updated_at	
+				)
+			VALUES
+				(
+					$1,
+					$2,
+					now(),
+					now()
+				)
+			RETURNING id
+	`
+	var lastID int64
+	err := ppdar.Conn.QueryRow(query, pda.PollingID, pda.Answer).Scan(&lastID)
+	if err != nil {
+		log.Println(err)
+		return lastID, err
+	}
+
+	return lastID, nil
+}
+
+func (ppdar *postgresPollingDefinedAnswerRepository) Update(pda *model.PollingDefinedAnswer) error {
+	query := `
+		UPDATE
+			polling_defined_answers
+		SET
+			polling_id = $1,
+			answer = $2,
+			updated_at = now()
+		WHERE
+			id = $3
+	`
+
+	stmt, err := ppdar.Conn.Prepare(query)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(pda.PollingID, pda.Answer, pda.ID)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func (ppdar *postgresPollingDefinedAnswerRepository) Delete(id int64) error {
+	query := `
+		DELETE
+			polling_defined_answers
+		WHERE
+			id = $1
+	`
+
+	stmt, err := ppdar.Conn.Prepare(query)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
 }

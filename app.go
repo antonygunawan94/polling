@@ -17,6 +17,7 @@ import (
 	"gopkg.in/tokopedia/logging.v1"
 
 	_pdaRepository "github.com/antony/polling/polling_defined_answer/repository"
+	_puaRepository "github.com/antony/polling/polling_user_answer/repository"
 
 	pollingDelivery "github.com/antony/polling/polling/delivery/http"
 	pollingRepository "github.com/antony/polling/polling/repository"
@@ -58,9 +59,10 @@ func main() {
 	router := httprouter.New()
 
 	//init polling handler
-	pdap := _pdaRepository.NewPostgresPollingDefinedAnswerRepository(db)
 	pp := pollingRepository.NewPostgresPollingRepository(db)
-	pu := pollingUsecase.NewPollingUsecase(pp, pdap)
+	pdap := _pdaRepository.NewPostgresPollingDefinedAnswerRepository(db)
+	puap := _puaRepository.NewPollingUserAnswerPostgresRepository(db)
+	pu := pollingUsecase.NewPollingUsecase(pp, pdap, puap)
 	pollingDelivery.NewPollingHttpHandler(router, pu)
 
 	go logging.StatsLog()
