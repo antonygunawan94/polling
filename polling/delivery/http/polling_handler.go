@@ -10,6 +10,7 @@ import (
 	"github.com/antony/polling/httputil"
 	"github.com/antony/polling/polling/model"
 	"github.com/antony/polling/polling/usecase"
+	pua "github.com/antony/polling/polling_user_answer/model"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -131,6 +132,61 @@ func (hph *httpPollingHandler) Create(w http.ResponseWriter, r *http.Request, p 
 	httputil.WriteSuccessResponse(w, "Success inserting new polling", nil)
 }
 
+func (hph *httpPollingHandler) AnswerPolling(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	httputil.SetWriterJSON(w)
+
+	//extract request value
+	sID := p.ByName("id")
+	ID, err := strconv.Atoi(sID)
+	if err != nil {
+		log.Println(err)
+		httputil.WriteErrorResponse(w, 500, "Internal server error")
+		return
+	}
+
+	polling, err := hph.PUsecase.GetByID(int64(ID))
+	if err != nil {
+		log.Println(err)
+		httputil.WriteErrorResponse(w, 500, "Internal server error")
+		return
+	}
+
+	if polling == nil {
+		httputil.WriteErrorResponse(w, 400, "Polling not found")
+		return
+	}
+
+	req := struct {
+		PollingDefinedAnswerID int64  `json:"polling_defined_answer_id"`
+		Username               string `json:"username"`
+		CustomAnswer           string `json:"custom_answer"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&req)
+	if err != nil {
+		log.Println(err)
+		httputil.WriteErrorResponse(w, 500, "Internal server error")
+		return
+	}
+
+	answer := pua.PollingUserAnswer{
+		PollingID:              int64(ID),
+		PollingDefinedAnswerID: req.PollingDefinedAnswerID,
+		Username:               req.Username,
+		Answer:                 req.CustomAnswer,
+	}
+
+	err = hph.PUsecase.AnswerPolling(&answer)
+	if err != nil {
+		log.Println(err)
+		httputil.WriteErrorResponse(w, 500, err.Error())
+		return
+	}
+
+	httputil.WriteSuccessResponse(w, "Success answer polling", nil)
+}
+
 func NewPollingHttpHandler(router *httprouter.Router, pu *usecase.PollingUsecase) {
 	handler := httpPollingHandler{
 		pu,
@@ -139,4 +195,5 @@ func NewPollingHttpHandler(router *httprouter.Router, pu *usecase.PollingUsecase
 	router.GET("/polling/:id", handler.GetPollingDetailByID)
 	router.GET("/room/:id/polling", handler.GetByRoomID)
 	router.POST("/polling", handler.Create)
+	router.POST("/polling/answer/:id", handler.AnswerPolling)
 }

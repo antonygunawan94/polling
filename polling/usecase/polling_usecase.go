@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/antony/polling/polling/model"
@@ -132,6 +133,26 @@ func (pu *PollingUsecase) Insert(polling *model.Polling) error {
 			log.Println(err)
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (pu *PollingUsecase) AnswerPolling(answer *pua.PollingUserAnswer) error {
+	isExist, err := pu.pollingUserAnswerRepo.IsExist(answer)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	if isExist {
+		return fmt.Errorf("Username %v has already answer this polling", answer.Username)
+	}
+
+	_, err = pu.pollingUserAnswerRepo.Insert(answer)
+	if err != nil {
+		log.Println(err)
+		return err
 	}
 
 	return nil

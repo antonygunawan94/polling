@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"log"
 
 	"github.com/antony/polling/polling_user_answer/model"
@@ -73,7 +74,7 @@ func (puapr *pollingUserAnswerPostgresRepository) Insert(answer *model.PollingUs
 			polling_user_answers
 		(
 			polling_id,
-			poling_defined_answer_id,
+			polling_defined_answer_id,
 			username,
 			custom_answer,
 			created_at,
@@ -104,4 +105,32 @@ func (puapr *pollingUserAnswerPostgresRepository) Insert(answer *model.PollingUs
 		return lastID, err
 	}
 	return lastID, nil
+}
+
+func (puapr *pollingUserAnswerPostgresRepository) IsExist(answer *model.PollingUserAnswer) (bool, error) {
+	query := `
+		SELECT 
+			id
+		FROM
+			polling_user_answers
+		WHERE
+			polling_id = $1 AND
+			username = $2
+		LIMIT 1
+	`
+
+	isExist := false
+
+	var ID int64
+	err := puapr.conn.QueryRow(query, answer.PollingID, answer.Username).Scan(&ID)
+	if err != nil && err != sql.ErrNoRows {
+		panic(err)
+		return isExist, err
+	}
+
+	if err != sql.ErrNoRows {
+		isExist = true
+	}
+
+	return isExist, nil
 }
